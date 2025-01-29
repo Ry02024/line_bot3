@@ -2,7 +2,10 @@ name: LINE Auto Tweet
 
 on:
   workflow_dispatch:  # 手動実行
-
+  
+  schedule:
+    - cron: '*/5 * * * *'
+  
 jobs:
   send_message:
     runs-on: ubuntu-latest

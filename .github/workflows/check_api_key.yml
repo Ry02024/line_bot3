@@ -17,5 +17,5 @@ jobs:
 
     - name: Debug GOOGLE_API_KEY
       env:
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        GOOGLE_API_KEY: ${{ secrets.GEMINI_API_KEY }}
       run: python check_api_key.py

@@ -23,17 +23,18 @@ def get_gemini_text(topic, retries=3, delay=5, api_key=gemini_api_key):
 
     for attempt in range(retries):
         try:
+            # Gemini APIにリクエストを送信
             response = genai.GenerativeModel(model_name="gemini-1.5-pro").generate_content(contents=[prompt])
             if not response.text:
                 raise ValueError("Gemini APIで有効なレスポンスが得られませんでした。")
-            return response.text.strip()
+            return response.text.strip()  # 正常なレスポンスを返す
+
         except InternalServerError as e:
             print(f"❌ Gemini APIエラー (リトライ {attempt + 1}/{retries}): {e}")
             time.sleep(delay)
             if attempt == retries - 1:
-                raise  # 最後の試行でも失敗したら例外をスロー
+                return "テスト"  # 最後の試行で失敗したら "テスト" を返す
+
         except Exception as e:
             print(f"❌ その他のエラー: {e}")
-            raise
-
-# `main.py` を作らない場合、直接実行する機能は不要なので `if __name__ == "__main__":` は省略
+            return "テスト"  # その他のエラー時も "テスト" を返す

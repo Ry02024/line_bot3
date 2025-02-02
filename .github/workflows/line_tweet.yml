@@ -4,7 +4,7 @@ on:
   workflow_dispatch:  # 手動実行
   
   schedule:
-    - cron: '0 18,21,0,3,6 * * *'
+    - cron: '0 0,3,6,9,12 * * *'
   
 jobs:
   send_message:

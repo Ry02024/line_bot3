@@ -49,39 +49,25 @@ def save_topics(topics):
     print(f"{TOPICS_FILE} を更新しました。")
 
 
-✅ 修正方針
-update_topics() に summary_text を引数として渡す
-summarize_text(messages) を main で実行し、update_topics(summary_text) に渡す
-不要な summarize_text(messages) の呼び出しを削除
-summary_text の値が None や "" の場合は更新をスキップ
-✅ 修正後の send2line.py
-python
-コピーする
-編集する
-import json, os, random, requests, datetime, sys
-from gemini import get_gemini_text, summarize_text, generate_topics_from_summary
+def update_topics(summary_text):
+    """既存のトピックから5つを維持し、要約から5つの新トピックを生成して更新"""
+    if not summary_text or summary_text.strip() == "投稿が少ないため、要約できませんでした。":
+        print("⚠️ 要約が十分に生成されなかったため、トピックを更新しません。")
+        return load_topics()  # トピック更新せず、既存のまま
 
-# ファイルの定義
-TOPICS_FILE = "topics.json"
-BOT_MESSAGE_LOG_FILE = "bot_message_log.txt"
+    old_topics = load_topics()
+    new_topics = generate_topics_from_summary(summary_text)  # Gemini APIで新トピックス生成
 
-# 初回実行時のデフォルトトピック（10個）
-DEFAULT_TOPICS = [
-    "AIと未来の働き方",
-    "最新のテクノロジートレンド",
-    "日本の伝統文化とデジタル技術",
-    "ロボットと社会の関係",
-    "持続可能な開発目標（SDGs）",
-    "未来のモビリティと交通システム",
-    "メタバースとその可能性",
-    "宇宙開発の最新動向",
-    "再生可能エネルギーの革新",
-    "量子コンピュータの未来"
-]
-
-# LINE API設定
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-LINE_GROUP_ID = os.getenv("LINE_GROUP_ID")
+    if len(new_topics) < 5:
+        print("⚠️ 新しいトピックスが5つ生成されなかったため、更新をスキップします。")
+        return old_topics
+    
+    remaining_topics = random.sample(old_topics, 5)  # 既存の5つを維持
+    updated_topics = new_topics + remaining_topics  # 10個のリストにする
+    save_topics(updated_topics)
+    print("🔄 トピックリストを更新しました。")
+    
+    return updated_topics
 
 def save_bot_message(text):
     """メッセージをログファイルに保存"""

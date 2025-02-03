@@ -6,12 +6,14 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 # Gemini モジュールのインポート
 from gemini import get_gemini_text, summarize_text, generate_topics_from_summary
 
-# ファイルの定義
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # `src/` のディレクトリを取得
-CONFIG_DIR = os.path.join(BASE_DIR, "../config")  # `config/` のパスを取得
+# ディレクトリのパス設定
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # `src/` のパス
+CONFIG_DIR = os.path.join(BASE_DIR, "../config")  # `config/` のパス
+LOG_DIR = os.path.join(BASE_DIR, "../logs")  # `logs/` のパス
 
-TOPICS_FILE = os.path.join(CONFIG_DIR, "topics.json")  # 新しいパス
-BOT_MESSAGE_LOG_FILE = os.path.join("../logs", "bot_message_log.txt")  # ログの修正
+# ファイルの定義
+TOPICS_FILE = os.path.join(CONFIG_DIR, "topics.json")
+BOT_MESSAGE_LOG_FILE = os.path.join(LOG_DIR, "bot_message_log.txt")
 
 # 初回実行時のデフォルトトピック（10個）
 DEFAULT_TOPICS = [

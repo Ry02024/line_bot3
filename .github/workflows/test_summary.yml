@@ -10,6 +10,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v3
+      with:
+        fetch-depth: 0  # 🔹 これでリベース時の競合を防ぐ
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -33,10 +35,11 @@ jobs:
       run: |
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        
-        git pull --rebase  # 競合回避のためリベース
-        git add topics.json || echo "No changes to commit"
+
+        git add topics.json  # 🔹 先に変更をステージング
         git commit -m "Test: Update topics.json from summary" || echo "Nothing to commit"
-        git push
+
+        git pull --rebase origin main  # 🔹 ここでリベース
+        git push origin main
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

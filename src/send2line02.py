@@ -1,11 +1,10 @@
-import json
-import os
-import random
-import requests
-import datetime
-import sys
-from gemini import get_gemini_text, summarize_text, generate_topics_from_summary
+import sys, os, json, random, requests, datetime,
 
+# src/ ディレクトリを sys.path に追加
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Gemini モジュールのインポート
+from gemini import get_gemini_text, summarize_text, generate_topics_from_summary
 # ファイルの定義
 TOPICS_FILE = "topics.json"
 BOT_MESSAGE_LOG_FILE = "bot_message_log.txt"

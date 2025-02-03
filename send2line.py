@@ -1,5 +1,5 @@
 import json, os, random, requests, datetime, sys
-from gemini import get_gemini_text, summarize_text
+from gemini import get_gemini_text, summarize_text, generate_topics_from_summary
 
 # ファイルの定義
 TOPICS_FILE = "topics.json"
@@ -48,21 +48,81 @@ def save_topics(topics):
         json.dump(topics, file, ensure_ascii=False, indent=4)
     print(f"{TOPICS_FILE} を更新しました。")
 
-def update_topics():
-    """その日の投稿から生成した要約を5つのトピックにし、既存の5つと入れ替える"""
-    old_topics = load_topics()
-    messages = read_bot_messages()
-    daily_summary = summarize_text(messages)
-    
-    # Gemini API が適切な要約を生成できなかった場合はスキップ
-    if not daily_summary or daily_summary == "投稿が少ないため、要約できませんでした。":
+
+✅ 修正方針
+update_topics() に summary_text を引数として渡す
+summarize_text(messages) を main で実行し、update_topics(summary_text) に渡す
+不要な summarize_text(messages) の呼び出しを削除
+summary_text の値が None や "" の場合は更新をスキップ
+✅ 修正後の send2line.py
+python
+コピーする
+編集する
+import json, os, random, requests, datetime, sys
+from gemini import get_gemini_text, summarize_text, generate_topics_from_summary
+
+# ファイルの定義
+TOPICS_FILE = "topics.json"
+BOT_MESSAGE_LOG_FILE = "bot_message_log.txt"
+
+# 初回実行時のデフォルトトピック（10個）
+DEFAULT_TOPICS = [
+    "AIと未来の働き方",
+    "最新のテクノロジートレンド",
+    "日本の伝統文化とデジタル技術",
+    "ロボットと社会の関係",
+    "持続可能な開発目標（SDGs）",
+    "未来のモビリティと交通システム",
+    "メタバースとその可能性",
+    "宇宙開発の最新動向",
+    "再生可能エネルギーの革新",
+    "量子コンピュータの未来"
+]
+
+# LINE API設定
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_GROUP_ID = os.getenv("LINE_GROUP_ID")
+
+def save_bot_message(text):
+    """メッセージをログファイルに保存"""
+    with open(BOT_MESSAGE_LOG_FILE, "a", encoding="utf-8") as file:
+        file.write(text + "\n")
+
+# 初回実行時に空のログファイルを作成（なければ）
+if not os.path.exists(BOT_MESSAGE_LOG_FILE):
+    with open(BOT_MESSAGE_LOG_FILE, "w", encoding="utf-8") as file:
+        file.write("Bot Message Log Initialized\n")
+
+def load_topics():
+    """トピックリストをJSONファイルから読み込む（なければ作成）"""
+    if not os.path.exists(TOPICS_FILE):
+        print(f"{TOPICS_FILE} が存在しないため、新しく作成します。")
+        save_topics(DEFAULT_TOPICS)
+        return DEFAULT_TOPICS
+    with open(TOPICS_FILE, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+def save_topics(topics):
+    """トピックリストをJSONファイルに保存"""
+    with open(TOPICS_FILE, "w", encoding="utf-8") as file:
+        json.dump(topics, file, ensure_ascii=False, indent=4)
+    print(f"{TOPICS_FILE} を更新しました。")
+
+def update_topics(summary_text):
+    """既存のトピックから5つを維持し、要約から5つの新トピックを生成して更新"""
+    if not summary_text or summary_text.strip() == "投稿が少ないため、要約できませんでした。":
         print("⚠️ 要約が十分に生成されなかったため、トピックを更新しません。")
+        return load_topics()  # トピック更新せず、既存のまま
+
+    old_topics = load_topics()
+    new_topics = generate_topics_from_summary(summary_text)  # Gemini APIで新トピックス生成
+
+    if len(new_topics) < 5:
+        print("⚠️ 新しいトピックスが5つ生成されなかったため、更新をスキップします。")
         return old_topics
     
-    new_topics = daily_summary.split("\n")[:5]  # 上位5つを新トピックとする
     remaining_topics = random.sample(old_topics, 5)  # 既存の5つを維持
-
-    updated_topics = new_topics + remaining_topics
+    updated_topics = new_topics + remaining_topics  # 10個のリストにする
     save_topics(updated_topics)
     print("🔄 トピックリストを更新しました。")
     
@@ -109,7 +169,7 @@ if __name__ == "__main__":
         messages = read_bot_messages()
         summary_text = summarize_text(messages)
         send_message(f"📅 **テスト要約**:\n{summary_text}")
-        update_topics()
+        update_topics(summary_text)  # **修正: ここで summary_text を引数に渡す**
         sys.exit(0)  # テスト完了
         
     # 📌 **日本時間21:15 → 1日の要約を投稿 & トピック更新**

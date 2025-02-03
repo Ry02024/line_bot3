@@ -1,6 +1,4 @@
-import os
-import requests
-import time
+import os, json, time, requests
 from google.api_core.exceptions import InternalServerError
 import google.generativeai as genai
 
@@ -38,3 +36,14 @@ def get_gemini_text(topic, retries=3, delay=5, api_key=gemini_api_key):
         except Exception as e:
             print(f"❌ その他のエラー: {e}")
             return "テスト"  # その他のエラー時も "テスト" を返す
+
+def summarize_text(messages):
+    """渡されたメッセージリストを要約"""
+    # Gemini API に要約を依頼
+    prompt = f"""
+    以下は本日の投稿内容です。これらを100字以内で簡潔に要約してください。
+    {''.join(messages)}
+    """
+    summary = get_gemini_text(prompt)
+    
+    return summary.strip()

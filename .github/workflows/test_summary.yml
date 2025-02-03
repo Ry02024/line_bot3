@@ -1,7 +1,7 @@
-name: Test Summary Posting
+name: Test Summary and Topic Update
 
 on:
-  workflow_dispatch:  # 手動実行可能にする
+  workflow_dispatch:  # 手動実行
 
 jobs:
   test_summary:
@@ -14,7 +14,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.9"
+        python-version: "3.10"
 
     - name: Install dependencies
       run: |
@@ -28,3 +28,15 @@ jobs:
         LINE_GROUP_ID: ${{ secrets.LINE_GROUP_ID }}
       run: |
         python send2line.py --test-summary
+
+    - name: Commit and push updated topics.json
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        
+        git pull --rebase  # 競合回避のためリベース
+        git add topics.json || echo "No changes to commit"
+        git commit -m "Test: Update topics.json from summary" || echo "Nothing to commit"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -11,7 +11,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        fetch-depth: 0  # 🔹 これでリベース時の競合を防ぐ
+        fetch-depth: 0  # 🔹 リベース時の競合を防ぐため履歴を全取得
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -36,10 +36,12 @@ jobs:
         git config --global user.name "github-actions[bot]"
         git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-        git add topics.json  # 🔹 先に変更をステージング
-        git commit -m "Test: Update topics.json from summary" || echo "Nothing to commit"
+        git stash --include-untracked  # 🔹 未ステージの変更を一時保存
+        git pull --rebase origin main  # 🔹 リベースして競合回避
+        git stash pop  # 🔹 一時保存した変更を復元
 
-        git pull --rebase origin main  # 🔹 ここでリベース
+        git add -A  # 🔹 すべての変更をステージング
+        git commit -m "Test: Update topics.json from summary" || echo "Nothing to commit"
         git push origin main
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

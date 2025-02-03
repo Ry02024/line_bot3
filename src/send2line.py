@@ -1,4 +1,4 @@
-import sys, os, json, random, requests, datetime,
+import sys, os, json, random, requests, datetime
 
 # src/ ディレクトリを sys.path に追加
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

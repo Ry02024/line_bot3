@@ -1,97 +1,63 @@
+import json
 import os
+import random
 import requests
-from gemini import get_gemini_text  # `gemini.py` から関数をインポート
-import random  # random モジュールをインポート
-import json # JSON モジュールをインポート (トピックリストの保存・読み込みのため)
-import datetime # datetime モジュールをインポート (save_bot_message で使用)
+from gemini import get_gemini_text
 
-# 環境変数からLINEのアクセストークンとグループIDを取得
-channel_access_token = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
-group_id = os.getenv("LINE_GROUP_ID")
+# トピックリストの保存ファイル
+TOPICS_FILE = "topics.json"
 
-BOT_MESSAGE_LOG_FILE = "bot_message_log.txt" # ボットのメッセージログファイル名
-TOPICS_FILE = "topics.json" # トピックリストを保存するファイル名 (JSON形式)
+# 初回実行時のデフォルトトピック
+DEFAULT_TOPICS = [
+    "AIと未来の働き方",
+    "最新のテクノロジートレンド",
+    "日本の伝統文化とデジタル技術",
+    "ロボットと社会の関係",
+    "持続可能な開発目標（SDGs）"
+]
 
-def save_bot_message(text):
-    """ボットのメッセージをログファイルに保存する関数"""
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S") # タイムスタンプ
-    try:
-        with open(BOT_MESSAGE_LOG_FILE, "a") as f:
-            f.write(f"{timestamp}: {text}\n")
-    except Exception as e:
-        print(f"⚠️ メッセージログ保存エラー: {e}")
-        
-def send_message(text):
-    """LINEメッセージを送信する"""
-    url = "https://api.line.me/v2/bot/message/push"
-    headers = {
-        "Authorization": f"Bearer {channel_access_token}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "to": group_id,
-        "messages": [{"type": "text", "text": text}]
-    }
-
-    response = requests.post(url, json=data, headers=headers)
-    print(f"Response Status Code: {response.status_code}")
-    print(f"Response Body: {response.text}")
+# LINE API設定
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
+LINE_GROUP_ID = os.getenv("LINE_GROUP_ID")
 
 def load_topics():
-    """トピックリストをファイルから読み込む関数"""
-    try:
-        with open(TOPICS_FILE, "r", encoding="utf-8") as f: # UTF-8 エンコーディングでファイルを開く
-            topics = json.load(f) # JSON形式で読み込む
-        print("✅ トピックリストをファイルから読み込みました。") # ログ出力
-        return topics
-    except FileNotFoundError:
-        print("ℹ️ トピックリストファイルが見つかりませんでした。初期リストを作成します。") # ログ出力
-        return None # ファイルがない場合は None を返す
-    except json.JSONDecodeError:
-        print("⚠️ トピックリストファイルのJSON形式が不正です。初期リストを作成します。") # ログ出力
-        return None # JSON形式エラーの場合も None を返す
-    except Exception as e:
-        print(f"⚠️ トピックリスト読み込みエラー: {e}") # ログ出力
-        return None # その他のエラーの場合も None を返す
+    """トピックリストをJSONファイルから読み込む（なければ作成）"""
+    if not os.path.exists(TOPICS_FILE):
+        print(f"{TOPICS_FILE} が存在しないため、新しく作成します。")
+        save_topics(DEFAULT_TOPICS)
+        return DEFAULT_TOPICS
+    with open(TOPICS_FILE, "r", encoding="utf-8") as file:
+        return json.load(file)
 
 def save_topics(topics):
-    """トピックリストをファイルに保存する関数"""
-    try:
-        with open(TOPICS_FILE, "w", encoding="utf-8") as f: # UTF-8 エンコーディングでファイルを開く
-            json.dump(topics, f, indent=2, ensure_ascii=False) # JSON形式で保存 (インデント付き、日本語文字化け対策)
-        print("✅ トピックリストをファイルに保存しました。") # ログ出力
-    except Exception as e:
-        print(f"⚠️ トピックリスト保存エラー: {e}") # ログ出力
-        
+    """トピックリストをJSONファイルに保存"""
+    with open(TOPICS_FILE, "w", encoding="utf-8") as file:
+        json.dump(topics, file, ensure_ascii=False, indent=4)
+    print(f"{TOPICS_FILE} を更新しました。")
+
+def send_message(text):
+    """LINEにメッセージを送信"""
+    url = "https://api.line.me/v2/bot/message/push"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"
+    }
+    data = {
+        "to": LINE_GROUP_ID,
+        "messages": [{"type": "text", "text": text}]
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if response.status_code == 200:
+        print("メッセージ送信成功")
+    else:
+        print(f"メッセージ送信失敗: {response.status_code}, {response.text}")
+
 if __name__ == "__main__":
-    # トピックリストの初期化処理 (ファイルから読み込む or 初期リスト作成)
-    initial_topics = [ # 初期トピックリスト (ファイルがない場合に使用)
-        "最新のAI技術",
-        "環境問題とテクノロジー",
-        "宇宙探査の未来",
-        "健康寿命を延ばす方法",
-        "食料問題の解決策",
-        "エネルギー問題の現状と対策",
-        "教育の未来",
-        "都市のスマート化",
-        "リモートワークの進化",
-        "サステナブルな社会"
-    ]
-    loaded_topics = load_topics() # ファイルからトピックリストを読み込む
-    if loaded_topics:
-        topics = loaded_topics # ファイルから読み込めた場合はそちらを使用
-    else:
-        topics = initial_topics # ファイルから読み込めなかった場合は初期リストを使用
-        save_topics(topics) # 初期リストをファイルに保存 (次回から読み込めるように)
+    topics = load_topics()  # トピックリストの読み込み
+    topic = random.choice(topics)  # ランダムにトピックを選択
+    print(f"選択されたトピック: {topic}")
 
+    tweet = get_gemini_text(topic)  # Gemini API でツイート生成
+    print(f"生成されたメッセージ: {tweet}")
 
-    topic = random.choice(topics) # ランダムにトピックを選択
-    print(f"📢 今日のトピック: {topic}") # 選択されたトピックを出力
-
-    message = get_gemini_text(topic)
-
-    if message:
-        print(f"📨 送信するメッセージ: {message}")
-        send_message(message)
-    else:
-        print("⚠️ 生成されたメッセージが空です。")
+    send_message(tweet)  # LINE にメッセージを送信

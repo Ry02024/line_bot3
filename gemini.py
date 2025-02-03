@@ -47,3 +47,25 @@ def summarize_text(messages):
     summary = get_gemini_text(prompt)
     
     return summary.strip()
+
+def generate_topics_from_summary(summary_text):
+    """要約された1日の内容から、5つの新しいトピックスを生成"""
+    prompt = f"""
+    以下の内容を元に、5つの異なるトピックスを生成してください。
+    各トピックは10文字以内の短いタイトルで出力してください。
+    
+    【要約】:
+    {summary_text}
+    
+    出力形式:
+    - トピック1
+    - トピック2
+    - トピック3
+    - トピック4
+    - トピック5
+    """
+
+    topics = get_gemini_text(prompt)
+    
+    # トピックをリストとして分割
+    return [topic.strip() for topic in topics.split("\n") if topic.strip()]

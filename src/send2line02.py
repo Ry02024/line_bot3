@@ -108,6 +108,18 @@ def read_bot_messages():
 
     return messages
 
+def process_summary_and_update_topics(is_test=False):
+    """1日の要約を作成し、LINEに投稿 & トピックを更新"""
+    print("📢 1日の要約を作成し、トピックを更新します。")
+    messages = read_bot_messages()
+    summary_text = summarize_text(messages)
+
+    send_message(f"📅 本日の要約:\n{summary_text}")
+    update_topics(summary_text)  # ✅ `summary_text` を引数に渡す
+
+    if is_test:
+        sys.exit(0)  # ✅ `--test-summary` なら処理終了
+        
 if __name__ == "__main__":
     now_utc = datetime.datetime.utcnow()
     jst_hour = (now_utc.hour + 9) % 24  # UTCからJSTに変換
@@ -116,20 +128,11 @@ if __name__ == "__main__":
     # **テストモード (手動実行)**
     if "--test-summary" in sys.argv:
         print("🚀 **手動テストモード: 1日の要約とトピック更新を実行** 🚀")
-        messages = read_bot_messages()
-        summary_text = summarize_text(messages)
-        send_message(f"📅 **テスト要約**:\n{summary_text}")
-        update_topics(summary_text)  # **修正: ここで summary_text を引数に渡す**
-        sys.exit(0)  # テスト完了
+        process_summary_and_update_topics(is_test=True)
 
     # 📌 **日本時間21:15 → 1日の要約を投稿 & トピック更新**
-    if jst_hour == 21 and jst_minute >= 15:
-        print("📢 日本時間21:15 要約メッセージを投稿し、トピックを更新します。")
-        messages = read_bot_messages()
-        summary_text = summarize_text(messages)
-
-        send_message(f"📅 本日の要約:\n{summary_text}")
-        update_topics(summary_text)  # **修正: ここで summary_text を引数に渡す**
+    elif jst_hour == 21 and jst_minute >= 15:
+        process_summary_and_update_topics()
 
     # 📌 **それ以外の時間帯は通常のランダム投稿**
     else:

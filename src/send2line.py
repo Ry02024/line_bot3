@@ -7,8 +7,11 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from gemini import get_gemini_text, summarize_text, generate_topics_from_summary
 
 # ファイルの定義
-TOPICS_FILE = "topics.json"
-BOT_MESSAGE_LOG_FILE = "bot_message_log.txt"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # `src/` のディレクトリを取得
+CONFIG_DIR = os.path.join(BASE_DIR, "../config")  # `config/` のパスを取得
+
+TOPICS_FILE = os.path.join(CONFIG_DIR, "topics.json")  # 新しいパス
+BOT_MESSAGE_LOG_FILE = os.path.join("../logs", "bot_message_log.txt")  # ログの修正
 
 # 初回実行時のデフォルトトピック（10個）
 DEFAULT_TOPICS = [

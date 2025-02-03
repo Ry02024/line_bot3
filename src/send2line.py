@@ -56,7 +56,6 @@ def save_topics(topics):
         json.dump(topics, file, ensure_ascii=False, indent=4)
     print(f"{TOPICS_FILE} を更新しました。")
 
-
 def update_topics(summary_text):
     """既存のトピックから5つを維持し、要約から5つの新トピックを生成して更新"""
     if not summary_text or summary_text.strip() == "投稿が少ないため、要約できませんでした。":

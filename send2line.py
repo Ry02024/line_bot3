@@ -1,4 +1,4 @@
-import json, os, random, requests, datetime
+import json, os, random, requests, datetime, sys
 from gemini import get_gemini_text, summarize_text
 
 # ファイルの定義
@@ -103,6 +103,15 @@ if __name__ == "__main__":
     jst_hour = (now_utc.hour + 9) % 24  # UTCからJSTに変換
     jst_minute = now_utc.minute
 
+    # **テストモード (手動実行)**
+    if "--test-summary" in sys.argv:
+        print("🚀 **手動テストモード: 1日の要約とトピック更新を実行** 🚀")
+        messages = read_bot_messages()
+        summary_text = summarize_text(messages)
+        send_message(f"📅 **テスト要約**:\n{summary_text}")
+        update_topics()
+        sys.exit(0)  # テスト完了
+        
     # 📌 **日本時間21:15 → 1日の要約を投稿 & トピック更新**
     if jst_hour == 21 and jst_minute >= 15:
         print("📢 日本時間21:15 要約メッセージを投稿し、トピックを更新します。")

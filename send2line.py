@@ -20,6 +20,19 @@ DEFAULT_TOPICS = [
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN")
 LINE_GROUP_ID = os.getenv("LINE_GROUP_ID")
 
+# bot_message_log.txt の保存ファイル
+BOT_MESSAGE_LOG_FILE = "bot_message_log.txt"
+
+def save_bot_message(text):
+    """メッセージをログファイルに保存"""
+    with open(BOT_MESSAGE_LOG_FILE, "a", encoding="utf-8") as file:
+        file.write(text + "\n")
+
+# 初回実行時に空のログファイルを作成（なければ）
+if not os.path.exists(BOT_MESSAGE_LOG_FILE):
+    with open(BOT_MESSAGE_LOG_FILE, "w", encoding="utf-8") as file:
+        file.write("Bot Message Log Initialized\n")
+        
 def load_topics():
     """トピックリストをJSONファイルから読み込む（なければ作成）"""
     if not os.path.exists(TOPICS_FILE):

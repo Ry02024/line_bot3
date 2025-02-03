@@ -1,4 +1,9 @@
-import json, os, random, requests, datetime, sys
+import sys, os, json, random, requests, datetime,
+
+# src/ ディレクトリを sys.path に追加
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+# Gemini モジュールのインポート
 from gemini import get_gemini_text, summarize_text, generate_topics_from_summary
 
 # ファイルの定義

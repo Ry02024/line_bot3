@@ -1,11 +1,7 @@
-import json
-import os
-import random
-import requests
-import datetime
-from gemini import get_gemini_text
+import json, os, random, requests, datetime
+from gemini import get_gemini_text, summarize_text
 
-# トピックリストの保存ファイル
+# ファイルの定義
 TOPICS_FILE = "topics.json"
 BOT_MESSAGE_LOG_FILE = "bot_message_log.txt"
 
@@ -52,17 +48,28 @@ def save_topics(topics):
         json.dump(topics, file, ensure_ascii=False, indent=4)
     print(f"{TOPICS_FILE} を更新しました。")
 
-def update_topics(topics):
-    """日本時間21時の回だけ、ランダムに5つのトピックを入れ替える"""
-    new_topics = random.sample(DEFAULT_TOPICS, 5)  # デフォルトリストからランダムに5つ選択
-    remaining_topics = random.sample(topics, 5)   # 既存のリストからランダムに5つ選択
-    updated_topics = new_topics + remaining_topics  # 10個のリストにする
+def update_topics():
+    """その日の投稿から生成した要約を5つのトピックにし、既存の5つと入れ替える"""
+    old_topics = load_topics()
+    messages = read_bot_messages()
+    daily_summary = summarize_text(messages)
+    
+    # Gemini API が適切な要約を生成できなかった場合はスキップ
+    if not daily_summary or daily_summary == "投稿が少ないため、要約できませんでした。":
+        print("⚠️ 要約が十分に生成されなかったため、トピックを更新しません。")
+        return old_topics
+    
+    new_topics = daily_summary.split("\n")[:5]  # 上位5つを新トピックとする
+    remaining_topics = random.sample(old_topics, 5)  # 既存の5つを維持
+
+    updated_topics = new_topics + remaining_topics
     save_topics(updated_topics)
-    print("🔄 日本時間21時のため、トピックリストを更新しました。")
+    print("🔄 トピックリストを更新しました。")
+    
     return updated_topics
 
 def send_message(text):
-    """LINEにメッセージを送信し、ログにも記録"""
+    """LINEにメッセージを送信"""
     url = "https://api.line.me/v2/bot/message/push"
     headers = {
         "Content-Type": "application/json",
@@ -81,22 +88,37 @@ def send_message(text):
     else:
         print(f"❌ メッセージ送信失敗: {response.status_code}, {response.text}")
 
-if __name__ == "__main__":
-    topics = load_topics()  # トピックリストの読み込み
+def read_bot_messages():
+    """bot_message_log.txt から本日の投稿を取得"""
+    if not os.path.exists(BOT_MESSAGE_LOG_FILE):
+        return []
 
-    # 現在のUTC時刻を取得し、日本時間21時かどうかを判定
+    with open(BOT_MESSAGE_LOG_FILE, "r", encoding="utf-8") as file:
+        messages = file.readlines()
+    
+    return messages
+
+if __name__ == "__main__":
     now_utc = datetime.datetime.utcnow()
     jst_hour = (now_utc.hour + 9) % 24  # UTCからJSTに変換
+    jst_minute = now_utc.minute
 
-    if jst_hour == 21:
-        topics = update_topics(topics)  # 21時の回のみトピックを更新
+    # 📌 **日本時間21:15 → 1日の要約を投稿 & トピック更新**
+    if jst_hour == 21 and jst_minute >= 15:
+        print("📢 日本時間21:15 要約メッセージを投稿し、トピックを更新します。")
+        messages = read_bot_messages()
+        summary_text = summarize_text(messages)
+        
+        send_message(f"📅 本日の要約:\n{summary_text}")
+        update_topics()  # トピックを更新
+
+    # 📌 **それ以外の時間帯は通常のランダム投稿**
     else:
-        print(f"⏰ 日本時間{jst_hour}時のため、トピックは変更しません。")
+        topics = load_topics()
+        topic = random.choice(topics)  # ランダムにトピックを選択
+        print(f"🎯 選択されたトピック: {topic}")
 
-    topic = random.choice(topics)  # ランダムにトピックを選択
-    print(f"🎯 選択されたトピック: {topic}")
+        tweet = get_gemini_text(topic)  # Gemini API でツイート生成
+        print(f"📝 生成されたメッセージ: {tweet}")
 
-    tweet = get_gemini_text(topic)  # Gemini API でツイート生成
-    print(f"📝 生成されたメッセージ: {tweet}")
-
-    send_message(tweet)  # LINE にメッセージを送信
+        send_message(tweet)  # LINE にメッセージを送信

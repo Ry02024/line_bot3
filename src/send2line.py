@@ -152,7 +152,7 @@ def read_bot_messages():
         messages = file.readlines()
     
     return messages
-
+        
 if __name__ == "__main__":
     now_utc = datetime.datetime.utcnow()
     jst_hour = (now_utc.hour + 9) % 24  # UTCからJSTに変換
@@ -174,7 +174,7 @@ if __name__ == "__main__":
         summary_text = summarize_text(messages)
         
         send_message(f"📅 本日の要約:\n{summary_text}")
-        update_topics()  # トピックを更新
+        update_topics(summary_text)  # トピックを更新
 
     # 📌 **それ以外の時間帯は通常のランダム投稿**
     else:

@@ -17,7 +17,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.9"
+        python-version: "3.10"
 
     - name: Install dependencies
       run: |
@@ -30,3 +30,13 @@ jobs:
         LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
         LINE_GROUP_ID: ${{ secrets.LINE_GROUP_ID }}
       run: python send2line.py
+
+    - name: Commit and push updates
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add topics.json bot_message_log.txt || echo "No changes to commit"
+        git commit -m "Update topics and logs" || echo "Nothing to commit"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

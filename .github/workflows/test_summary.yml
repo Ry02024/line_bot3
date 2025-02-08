@@ -31,7 +31,7 @@ jobs:
         LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
         LINE_GROUP_ID: ${{ secrets.LINE_GROUP_ID }}
       run: |
-        python send2line.py --test-summary
+        python src/send2line.py --test-summary
 
     - name: Commit and push updated topics.json
       run: |

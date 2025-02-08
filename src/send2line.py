@@ -178,7 +178,11 @@ if __name__ == "__main__":
         summary_text = summarize_text(messages)
         
         send_message(f"📅 本日の要約:\n{summary_text}")
-        update_topics(summary_text)  # トピックを更新
+        updated_topics = update_topics(summary_text)  # ✅ `summary_text` を引数に渡し、結果を変数に保存
+        # 明日のトピックスを送信
+        topics_message = "🔮 明日のトピックスは:\n" + "\n".join(updated_topics) + "です。"
+        send_message(topics_message)
+
 
     # 📌 **それ以外の時間帯は通常のランダム投稿**
     else:

@@ -115,7 +115,7 @@ def process_summary_and_update_topics(is_test=False):
     summary_text = summarize_text(messages)
 
     send_message(f"📅 本日の要約:\n{summary_text}")
-    update_topics(summary_text)  # ✅ `summary_text` を引数に渡す
+    updated_topics = update_topics(summary_text)  # ✅ `summary_text` を引数に渡し、結果を変数に保存
 
     # 明日のトピックスを送信
     send_message(f"🔮 明日のトピックスは: {', '.join(updated_topics)}です。")

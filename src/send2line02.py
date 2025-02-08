@@ -117,6 +117,9 @@ def process_summary_and_update_topics(is_test=False):
     send_message(f"📅 本日の要約:\n{summary_text}")
     update_topics(summary_text)  # ✅ `summary_text` を引数に渡す
 
+    # 明日のトピックスを送信
+    send_message(f"🔮 明日のトピックスは: {', '.join(updated_topics)}です。")
+
     if is_test:
         sys.exit(0)  # ✅ `--test-summary` なら処理終了
         

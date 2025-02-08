@@ -166,7 +166,7 @@ if __name__ == "__main__":
         send_message(f"📅 **テスト要約**:\n{summary_text}")
         updated_topics = update_topics(summary_text)  # ✅ `summary_text` を引数に渡し、結果を変数に保存
         # 明日のトピックスを送信
-        send_message(f"🔮 明日のトピックスは: {', '.join(updated_topics)}です。")
+        send_message(f"🔮 明日のトピックスは:\n{',\n'.join(updated_topics)}です。")
 
         sys.exit(0)  # テスト完了
         

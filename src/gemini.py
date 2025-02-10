@@ -31,11 +31,11 @@ def get_gemini_text(topic, retries=3, delay=5, api_key=gemini_api_key):
             print(f"❌ Gemini APIエラー (リトライ {attempt + 1}/{retries}): {e}")
             time.sleep(delay)
             if attempt == retries - 1:
-                return "今月はもう疲れましたorz"  # 最後の試行で失敗したら "テスト" を返す
+                return "ちょっと休ませてください"  # 最後の試行で失敗したら "テスト" を返す
 
         except Exception as e:
             print(f"❌ その他のエラー: {e}")
-            return genai.GenerativeModel(model_name="gemini-1.5-pro").generate_content(contents=[prompt]) #"今月はもう疲れましたorz"  # その他のエラー時も "テスト" を返す
+            return "今月はもう疲れましたorz" # その他のエラー時も "テスト" を返す
 
 def summarize_text(messages):
     """渡されたメッセージリストを要約"""

@@ -35,7 +35,7 @@ def get_gemini_text(topic, retries=3, delay=5, api_key=gemini_api_key):
 
         except Exception as e:
             print(f"❌ その他のエラー: {e}")
-            return "今月はもう疲れましたorz"  # その他のエラー時も "テスト" を返す
+            return genai.GenerativeModel(model_name="gemini-1.5-pro").generate_content(contents=[prompt]) #"今月はもう疲れましたorz"  # その他のエラー時も "テスト" を返す
 
 def summarize_text(messages):
     """渡されたメッセージリストを要約"""

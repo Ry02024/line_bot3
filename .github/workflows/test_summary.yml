@@ -2,8 +2,6 @@ name: Test Summary and Topic Update
 
 on:
   workflow_dispatch:  # 手動実行
-  schedule:
-    - cron: '0 4 * * *'
     
 jobs:
   test_summary:

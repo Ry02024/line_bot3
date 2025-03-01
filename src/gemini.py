@@ -1,6 +1,7 @@
-import os, json, time, requests
+import os
 from google.api_core.exceptions import InternalServerError
-import google.generativeai as genai
+from google import genai
+import time
 
 # 環境変数からGemini APIのURLとAPIキーを取得
 gemini_api_key = os.getenv("GEMINI_API_KEY")
@@ -12,17 +13,17 @@ def get_gemini_text(topic, retries=3, delay=5, api_key=gemini_api_key):
     `retries`: エラー発生時のリトライ回数
     `delay`: リトライ時の待機時間（秒）
     """
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
 
-    prompt = f"""
-    以下のトピックについて、100字以内で簡潔に丁寧語で説明してください。
-    トピック: {topic}
-    """
+    prompt = f"以下のトピックについて、100字以内で簡潔に丁寧語で説明してください。 トピック: {topic}"
 
     for attempt in range(retries):
         try:
             # Gemini APIにリクエストを送信
-            response = genai.GenerativeModel(model_name="gemini-1.5-pro").generate_content(contents=[prompt])
+            response = client.models.generate_content(
+                model="gemini-2.0-flash",
+                contents=prompt,
+            )
             if not response.text:
                 raise ValueError("Gemini APIで有効なレスポンスが得られませんでした。")
             return response.text.strip()  # 正常なレスポンスを返す
@@ -39,13 +40,8 @@ def get_gemini_text(topic, retries=3, delay=5, api_key=gemini_api_key):
 
 def summarize_text(messages):
     """渡されたメッセージリストを要約"""
-    # Gemini API に要約を依頼
-    prompt = f"""
-    以下は本日の投稿内容です。これらを100字以内で簡潔に要約してください。
-    {''.join(messages)}
-    """
+    prompt = f"以下は本日の投稿内容です。これらを100字以内で簡潔に要約してください。 {''.join(messages)}"
     summary = get_gemini_text(prompt)
-    
     return summary.strip()
 
 def generate_topics_from_summary(summary_text):
@@ -53,10 +49,10 @@ def generate_topics_from_summary(summary_text):
     prompt = f"""
     以下の内容を元に、5つの異なるトピックスを生成してください。
     各トピックは10文字以内の短いタイトルで出力してください。
-    
+
     【要約】:
     {summary_text}
-    
+
     出力形式:
     - トピック1
     - トピック2
@@ -64,8 +60,5 @@ def generate_topics_from_summary(summary_text):
     - トピック4
     - トピック5
     """
-
     topics = get_gemini_text(prompt)
-    
-    # トピックをリストとして分割
     return [topic.strip() for topic in topics.split("\n") if topic.strip()]

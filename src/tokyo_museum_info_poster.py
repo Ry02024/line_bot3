@@ -3,10 +3,6 @@ import requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from google import genai
-from dotenv import load_dotenv
-
-# 🔹 .env ファイルをロード #ローカルでのテスト実行用
-load_dotenv()
 
 # 環境変数の取得（strip() で空白削除）
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()

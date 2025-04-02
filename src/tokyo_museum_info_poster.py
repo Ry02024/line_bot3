@@ -7,7 +7,7 @@ from google import genai
 # 環境変数の取得（strip() で空白削除）
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
 LINE_GROUP_ID = os.getenv("LINE_GROUP_ID", "").strip()
-GEMINI_API = os.getenv("GEMINI_API", "").strip()
+GEMINI_API = os.getenv("GEMINI_API_KEY", "").strip()
 
 # Gemini API Key を環境変数から取得
 GEMINI_API_KEY = os.getenv("GEMINI_API", "").strip()

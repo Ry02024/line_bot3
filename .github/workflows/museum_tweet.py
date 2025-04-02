@@ -1,4 +1,4 @@
-name: LINE Auto Tweet
+name: LINE Auto Museum Tweet
 
 on:
   workflow_dispatch:  # 手動実行

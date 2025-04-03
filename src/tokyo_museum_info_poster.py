@@ -65,7 +65,6 @@ class GeminiLinePoster:
                 return "URLが取得できませんでした。ご興味のある方はご自身でも調べてみて下さい。"
             else:
                 ref_lines = []
-                ref_lines.append("取得した参照サイト一覧:")
                 for i, chunk in enumerate(grounding_chunks, start=1):
                     redirect_url = chunk.web.uri
                     final_url = self.get_final_url(redirect_url)
@@ -83,7 +82,7 @@ class GeminiLinePoster:
                         except Exception as e:
                             page_title = f"（エラー: {str(e)}）"
                     ref_lines.append(f"{i}. {final_url} {page_title}")
-                return "\n".join(ref_lines)
+                return ref_lines
     
     # ----- search_info 関数 -----
     def search_info(self, user_query):
@@ -120,19 +119,19 @@ class GeminiLinePoster:
         exhibitions = summary.split('\n')  # 要約結果を行ごとに分割
 
         special_exhibitions = []
-        regular_exhibitions = []
+        ref_dict = {i+1: ref for i, ref in enumerate(references)}
 
-        for exhibition in exhibitions:
+        for i, exhibition in enumerate(exhibitions):
             if "特別展示" in exhibition:
-                special_exhibitions.append(f"🎨 {exhibition}")
-            else:
-                regular_exhibitions.append(f"🖼️ {exhibition}")
+                ref = ref_dict.get(i+1)
+                if ref:
+                    special_exhibitions.append(f"{i+1}. {exhibition} {ref}")
+                else:
+                    special_exhibitions.append(f"{i+1}. {exhibition}")
 
         # メッセージを整形
         line_message = "本日の美術館情報\n\n"
-        line_message += "特別展示:\n" + "\n".join(special_exhibitions) + "\n\n"
-        line_message += "通常展示:\n" + "\n".join(regular_exhibitions) + "\n\n"
-        line_message += f"{references}"
+        line_message += "特別展示:\n" + "\n".join(special_exhibitions) + "\n"
 
         self.send_message_to_line(line_message)
 

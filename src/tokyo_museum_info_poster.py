@@ -23,18 +23,6 @@ class GeminiLinePoster:
             config={'tools': [{'google_search': {}}]}
         )
 
-    # HTTP GET（リトライ付き）※使っていないが一応保持
-    def robust_get(self, url, max_retries=3, timeout=20):
-        for attempt in range(max_retries):
-            try:
-                r = requests.get(url, allow_redirects=True, timeout=timeout)
-                return r
-            except Exception:
-                if attempt < max_retries - 1:
-                    continue
-                else:
-                    return None
-
     # 要約生成
     def summary_client(self, original_text):
         summary_prompt = f"""
@@ -78,7 +66,7 @@ class GeminiLinePoster:
         else:
             print(f"❌ メッセージ送信失敗: {response.status_code}, {response.text}")
 
-    # 特別展示の内容に応じて絵文字を選択
+    # 展示内容に応じた絵文字
     def select_emoji_by_content(self, content):
         content = content.lower()
         if any(keyword in content for keyword in ["現代", "絵画", "油彩", "アート", "美術"]):
@@ -96,7 +84,7 @@ class GeminiLinePoster:
         elif any(keyword in content for keyword in ["子ども", "こども", "教育", "学び", "ファミリー"]):
             return random.choice(["🧸", "📚", "🧑‍🏫"])
         else:
-            return random.choice(["🎨", "🖼️", "🏛️"])  # デフォルト
+            return random.choice(["🎨", "🖼️", "🏛️"])
 
     # メイン処理：検索→整形→LINE投稿
     def post_search_result(self, query):
@@ -104,19 +92,32 @@ class GeminiLinePoster:
         exhibitions = summary.split('\n')
 
         special_exhibitions = []
-        for i, exhibition in enumerate(exhibitions, start=1):
-            if "特別展示" in exhibition:
-                emoji = self.select_emoji_by_content(exhibition)
-                special_exhibitions.append(f"{emoji}{i}.{exhibition}")
+        regular_exhibitions = []
 
-        if not special_exhibitions:
-            line_message = "本日の特別展示情報は見つかりませんでした。"
+        for line in exhibitions:
+            if "特別展示" in line:
+                special_exhibitions.append(line)
+            elif "通常展示" in line:
+                regular_exhibitions.append(line)
+
+        selected = special_exhibitions[:5]
+        if len(selected) < 5:
+            additional = regular_exhibitions[:(5 - len(selected))]
+            selected.extend(additional)
+
+        if not selected:
+            line_message = "本日の展示情報は見つかりませんでした。"
         else:
-            line_message = "本日の特別展示情報\n\n" + "\n".join(special_exhibitions)
+            formatted_lines = []
+            for i, exhibition in enumerate(selected, start=1):
+                emoji = self.select_emoji_by_content(exhibition)
+                formatted_lines.append(f"{emoji}{i}.{exhibition}")
+
+            line_message = "本日の展示情報\n\n" + "\n".join(formatted_lines)
 
         self.send_message_to_line(line_message)
 
-# メイン実行
+# 実行ブロック
 if __name__ == "__main__":
     gemini_api = GEMINI_API
     line_channel_access_token = LINE_CHANNEL_ACCESS_TOKEN
@@ -124,5 +125,4 @@ if __name__ == "__main__":
 
     poster = GeminiLinePoster(gemini_api, line_channel_access_token, line_group_id)
 
-    # 東京の今日の美術館情報を投稿
     poster.post_search_result("今日の東京の美術館情報を教えてください。障がい者向けに無料の美術館があれば教えてください。文章はですます調でお願いします。")

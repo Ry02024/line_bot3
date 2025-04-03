@@ -65,7 +65,7 @@ class GeminiLinePoster:
                 return "URLが取得できませんでした。ご興味のある方はご自身でも調べてみて下さい。"
             else:
                 ref_lines = []
-                ref_lines.append("*取得した参照サイト一覧:*")
+                ref_lines.append("取得した参照サイト一覧:")
                 for i, chunk in enumerate(grounding_chunks, start=1):
                     redirect_url = chunk.web.uri
                     final_url = self.get_final_url(redirect_url)
@@ -82,8 +82,8 @@ class GeminiLinePoster:
                                 page_title = f"（取得できませんでした: {resp.status_code}）"
                         except Exception as e:
                             page_title = f"（エラー: {str(e)}）"
-                    ref_lines.append(f"{i}. <{final_url}|{page_title}>")
-                return "\n.join(ref_lines)"
+                    ref_lines.append(f"{i}. {final_url} {page_title}")
+                return "\n".join(ref_lines)
     
     # ----- search_info 関数 -----
     def search_info(self, user_query):
@@ -115,12 +115,28 @@ class GeminiLinePoster:
     # ----- search_info を利用して LINE に投稿する関数 -----
     def post_search_result(self, query):
         summary, references, response = self.search_info(query)
-        line_message = f"*要約結果:*\n{summary}\n\n{references}"
+        
+        # 特別展示と通常展示を分けてリスト形式で整形
+        exhibitions = summary.split('\n')  # 要約結果を行ごとに分割
+
+        special_exhibitions = []
+        regular_exhibitions = []
+
+        for exhibition in exhibitions:
+            if "特別展示" in exhibition:
+                special_exhibitions.append(f"🎨 {exhibition}")
+            else:
+                regular_exhibitions.append(f"🖼️ {exhibition}")
+
+        # メッセージを整形
+        line_message = "本日の美術館情報\n\n"
+        line_message += "特別展示:\n" + "\n".join(special_exhibitions) + "\n\n"
+        line_message += "通常展示:\n" + "\n".join(regular_exhibitions) + "\n\n"
+        line_message += f"{references}"
+
         self.send_message_to_line(line_message)
 
-# ----------------------------------------
-# メイン処理
-# ----------------------------------------
+# メイン処理の中で呼び出し
 if __name__ == "__main__":
     gemini_api = GEMINI_API
     line_channel_access_token = LINE_CHANNEL_ACCESS_TOKEN

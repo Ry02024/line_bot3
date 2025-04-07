@@ -23,7 +23,7 @@ jobs:
           pip install requests google-api-python-client
       
       - name: Run exhibition info script
-        run: python main.py
+        run: python tokyo_museum_info_poster2.py
         env:
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_GROUP_ID: ${{ secrets.LINE_GROUP_ID }}

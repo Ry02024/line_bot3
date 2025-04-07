@@ -20,7 +20,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests google-api-python-client
+          pip install -r config/requirements.txt
       
       - name: Run exhibition info script
         run: python src/tokyo_museum_info_poster2.py

@@ -76,12 +76,22 @@ class GeminiLinePoster:
 
         line = random.choice(lines)
         exhibition, museum = line.replace("：", ":").split(":")
-        query = f"{exhibition} {museum} の展示概要を教えてください。"
+        exhibition = exhibition.strip("🎨🏛️✨🌟").strip()
+        museum = museum.strip()
+
+        query = f"""
+        「{exhibition}」という展示が「{museum}」で開催されています。
+        この展示の概要を200文字以内で教えてください。
+        障がい者向けの配慮や文化的背景にも触れつつ、簡潔でLINE向けに読みやすくまとめてください。
+        日程・料金などの詳細は不要です。
+        """
 
         response = self.search_client.send_message(query)
         detail_text = "".join(part.text for part in response.candidates[0].content.parts if part.text).strip()
 
-        message = f"{exhibition}（{museum}）の概要です：\n\n{detail_text}"
+        # メッセージ整形
+        today = datetime.now(ZoneInfo("Asia/Tokyo")).strftime('%-m月%-d日')
+        message = f"🖼️ {today}の注目展示\n\n🎨{exhibition}（{museum}）\n\n{detail_text}"
         self.send_to_line(message)
 
 if __name__ == "__main__":

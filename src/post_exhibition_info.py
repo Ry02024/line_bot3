@@ -1,49 +1,96 @@
 import os
+import sys
+import random
 import requests
 from datetime import datetime
 from zoneinfo import ZoneInfo
+from google import genai
 
-LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")
-LINE_GROUP_ID = os.getenv("LINE_GROUP_ID", "")
-MODE = os.getenv("MODE", "main")  # 'main' or 'detail'
+LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
+LINE_GROUP_ID = os.getenv("LINE_GROUP_ID", "").strip()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 MESSAGE_FILE = "exhibition_message.txt"
 
-def send_to_line(text):
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {LINE_CHANNEL_ACCESS_TOKEN}"
-    }
-    data = {"to": LINE_GROUP_ID, "messages": [{"type": "text", "text": text}]}
-    r = requests.post("https://api.line.me/v2/bot/message/push", headers=headers, json=data)
-    print("✅ LINE送信成功" if r.status_code == 200 else f"❌ 送信失敗: {r.text}")
+class GeminiLinePoster:
+    def __init__(self, api_key, line_token, group_id):
+        self.client = genai.Client(api_key=api_key, http_options={'api_version': 'v1alpha'})
+        self.search_client = self.client.chats.create(
+            model='gemini-2.0-flash-exp',
+            config={'tools': [{'google_search': {}}]}
+        )
+        self.line_token = line_token
+        self.group_id = group_id
 
-def save_to_file(text):
-    with open(MESSAGE_FILE, "w", encoding="utf-8") as f:
-        f.write(text)
-    print("✅ 保存完了")
+    def send_to_line(self, message):
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.line_token}"
+        }
+        body = {
+            "to": self.group_id,
+            "messages": [{"type": "text", "text": message}]
+        }
+        res = requests.post("https://api.line.me/v2/bot/message/push", headers=headers, json=body)
+        print("✅ LINE送信:", res.status_code, res.text)
 
-def read_from_file():
-    with open(MESSAGE_FILE, "r", encoding="utf-8") as f:
-        return f.read()
+    def generate_summary(self):
+        query = "今日の東京の特別展示情報を5つ教えてください。障がい者向けに無料の展示を優先して教えてください。文章はですます調でお願いします。"
+        response = self.search_client.send_message(query)
+        original_text = "".join(part.text for part in response.candidates[0].content.parts if part.text)
 
-def get_gemini_summary():
-    # ダミー実装。Gemini APIで取得して整形する部分を入れる
-    today = datetime.now(ZoneInfo("Asia/Tokyo")).strftime("%Y年%-m月%-d日")
-    return f"🗓️{today}時点、東京の展示情報です。\n\n🎨展示1：館1\n🎭展示2：館2\n🎨展示3：館3"
+        today = datetime.now(ZoneInfo("Asia/Tokyo")).strftime('%Y年%-m月%-d日')
+        prompt = f"""
+        🗓️{today}時点、東京で開催中の障がい者向け無料鑑賞ができる美術館情報です。
 
-def get_one_detail():
-    # 1つを抜き出して概要取得（ここもGemini検索の実装を想定）
-    lines = read_from_file().splitlines()
-    candidates = [line for line in lines if "：" in line]
-    if not candidates:
-        return "📭 詳細対象が見つかりませんでした。"
-    return f"🔍 詳細紹介\n{candidates[0]} はとても興味深い展示です！"
+        以下の形式で、展示名と館名を簡潔に整理してください：
+        🎨展示名1：館名1
+        🏛️展示名2：館名2
+
+        条件：
+        - 特別展示と常設展示に分類
+        - マークダウン・リンク不要
+        - 詳細な説明不要、展示名＋館名のセットのみ
+        - 絵文字あり、LINEで見やすく
+        """
+
+        result = self.client.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents=prompt + "\n\n--- Original Text ---\n" + original_text
+        )
+        text = result.text.strip()
+        with open(MESSAGE_FILE, "w", encoding="utf-8") as f:
+            f.write(text)
+        return text
+
+    def send_detail_one_by_one(self):
+        if not os.path.exists(MESSAGE_FILE):
+            print("❌ summaryがまだ生成されていません")
+            return
+
+        with open(MESSAGE_FILE, encoding="utf-8") as f:
+            lines = [line for line in f.read().splitlines() if line.strip() and ("：" in line)]
+
+        if not lines:
+            print("❌ 特別展示のデータが見つかりません")
+            return
+
+        line = random.choice(lines)
+        exhibition, museum = line.replace("：", ":").split(":")
+        query = f"{exhibition} {museum} の展示概要を教えてください。"
+
+        response = self.search_client.send_message(query)
+        detail_text = "".join(part.text for part in response.candidates[0].content.parts if part.text).strip()
+
+        message = f"{exhibition}（{museum}）の概要です：\n\n{detail_text}"
+        self.send_to_line(message)
 
 if __name__ == "__main__":
-    if MODE == "main":
-        summary = get_gemini_summary()
-        send_to_line(summary)
-        save_to_file(summary)
-    elif MODE == "detail":
-        detail = get_one_detail()
-        send_to_line(detail)
+    mode = sys.argv[1] if len(sys.argv) > 1 else "summary"
+    poster = GeminiLinePoster(GEMINI_API_KEY, LINE_CHANNEL_ACCESS_TOKEN, LINE_GROUP_ID)
+    if mode == "summary":
+        summary = poster.generate_summary()
+        poster.send_to_line(summary)
+    elif mode == "detail":
+        poster.send_detail_one_by_one()
+    else:
+        print("❌ 無効なモードです。'summary' または 'detail' を指定してください。")

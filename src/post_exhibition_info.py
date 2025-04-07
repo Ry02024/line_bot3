@@ -102,7 +102,7 @@ class GeminiLinePoster:
     # 整形してLINEに送信
         today = datetime.now(ZoneInfo("Asia/Tokyo")).strftime('%-m月%-d日')
         message = f"🖼️ {today}の注目展示\n\n🎨{exhibition}（{museum}）\n\n{detail_text}"
-    self.send_to_line(message)
+        self.send_to_line(message)
 
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "summary"

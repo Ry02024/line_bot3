@@ -1,0 +1,23 @@
+name: Send Daily Exhibition Summary
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # JST 9:00
+
+jobs:
+  send_summary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install google-generativeai requests
+      - name: Run Summary Sender
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_GROUP_ID: ${{ secrets.LINE_GROUP_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python src/post_exhibition_info.py summary

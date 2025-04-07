@@ -1,0 +1,36 @@
+name: Morning Exhibition Info
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # JST 9:00 (UTC 0:00)
+  workflow_dispatch:
+
+jobs:
+  post_main_info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install requests
+        run: pip install requests
+
+      - name: Run exhibition summary
+        run: python src/post_exhibition_info.py
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_GROUP_ID: ${{ secrets.LINE_GROUP_ID }}
+          MODE: main
+
+      - name: Commit summary
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
+          git add exhibition_message.txt
+          git commit -m "📝 Update exhibition summary" || echo "No changes to commit"
+          git push

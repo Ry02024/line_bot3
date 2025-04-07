@@ -22,3 +22,11 @@ jobs:
           LINE_GROUP_ID: ${{ secrets.LINE_GROUP_ID }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python src/post_exhibition_info.py summary
+
+      - name: Commit and Push Changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add exhibition_message.txt
+          git commit -m "Update exhibition message $(date +'%Y-%m-%d %H:%M')"
+          git push

@@ -34,24 +34,24 @@ class GeminiLinePoster:
         print("✅ LINE送信:", res.status_code, res.text)
 
     def generate_summary(self):
-        query = "今日の東京の特別展示情報を5つ教えてください。障がい者向けに無料の展示を優先して教えてください。文章はですます調でお願いします。"
+        query = "今日の東京の特別展示情報を5つ教えてください。障がい者向けに無料の展示を優先して教えてください。"
         response = self.search_client.send_message(query)
         original_text = "".join(part.text for part in response.candidates[0].content.parts if part.text)
 
         today = datetime.now(ZoneInfo("Asia/Tokyo")).strftime('%Y年%-m月%-d日')
         prompt = f"""
-        🗓️{today}時点、東京で開催中の障がい者向け無料鑑賞ができる美術館情報です。
+🗓️{today}時点、東京で開催中の障がい者向け無料鑑賞ができる美術館情報です。
 
-        以下の形式で、展示名と館名を簡潔に整理してください：
-        🎨展示名1：館名1
-        🏛️展示名2：館名2
+以下の形式で、展示名と館名を簡潔に整理してください：
+🎨展示名1：館名1
+🏛️展示名2：館名2
 
-        条件：
-        - 特別展示と常設展示に分類
-        - マークダウン・リンク不要
-        - 詳細な説明不要、展示名＋館名のセットのみ
-        - 絵文字あり、LINEで見やすく
-        """
+条件：
+- 特別展示と常設展示に分類
+- 見出し行（例: 🎨特別展示：）などは含めず、展示＋館名のペアだけ
+- 詳細な説明不要、展示名＋館名のセットのみ
+- 絵文字あり、LINEで見やすく
+"""
 
         result = self.client.models.generate_content(
             model="gemini-2.0-flash-exp",
@@ -68,38 +68,52 @@ class GeminiLinePoster:
             return
 
         with open(MESSAGE_FILE, encoding="utf-8") as f:
-            lines = [line for line in f.read().splitlines() if line.strip() and ("：" in line)]
+            raw_text = f.read()
+
+        # Geminiで見出しを除いて展示ペアだけを抽出
+        extract_prompt = f"""
+以下の展示情報から、「展示名：館名」のペアだけを抽出してください。
+見出し（🎨特別展示：など）は除外してください。
+
+--- テキスト ---
+{raw_text}
+------------------
+"""
+        extract_response = self.client.models.generate_content(
+            model="gemini-2.0-flash-exp",
+            contents=extract_prompt
+        )
+        lines = [line.strip() for line in extract_response.text.strip().splitlines() if "：" in line]
 
         if not lines:
-            print("❌ 特別展示のデータが見つかりません")
+            print("❌ 展示ペアが見つかりません")
             return
 
         line = random.choice(lines)
-        exhibition, museum = line.replace("：", ":").split(":")
+        exhibition, museum = line.replace("：", ":").split(":", 1)
         exhibition = exhibition.strip("🎨🏛️✨🌟").strip()
         museum = museum.strip()
 
-    # 情報収集クエリ（長めの情報取得）
+        # 展示概要取得
         search_query = f"{exhibition} {museum} の展示概要を教えてください。"
         response = self.search_client.send_message(search_query)
         original_text = "".join(part.text for part in response.candidates[0].content.parts if part.text).strip()
 
-    # 要約プロンプト（短く、LINE向けに変換）
+        # 要約（LINE向け）
         prompt = f"""
-以下の展示紹介文を、200文字以内でLINE向けに要約してください。概要だけで良いです。
-簡潔で分かりやすく、視認性を意識してください。日程や料金、場所の記載は不要です。
+以下の展示紹介文を200文字以内で要約してください。視認性を意識し、文末は「です・ます」調でお願いします。
+料金や開催期間などの詳細情報は含めず、展示の概要のみを簡潔に記述してください。
 
 --- 原文 ---
 {original_text}
---------------
+---------------------
 """
         summary_response = self.client.models.generate_content(
-        model="gemini-2.0-flash-exp",
-        contents=prompt
-    )
+            model="gemini-2.0-flash-exp",
+            contents=prompt
+        )
         detail_text = summary_response.text.strip()
 
-    # 整形してLINEに送信
         today = datetime.now(ZoneInfo("Asia/Tokyo")).strftime('%-m月%-d日')
         message = f"🖼️ {today}の注目展示\n\n🎨{exhibition}（{museum}）\n\n{detail_text}"
         self.send_to_line(message)

@@ -26,3 +26,17 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_GROUP_ID: ${{ secrets.LINE_GROUP_ID }}
+
+      - name: Commit and Push Detail History Changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+          git add data/detail_history.json
+
+          if ! git diff --staged --quiet; then
+            git commit -m "Update detail history $(date +'%Y-%m-%d %H:%M:%S %Z')"
+            git push
+          else
+            echo "No changes in detail history to commit."
+          fi

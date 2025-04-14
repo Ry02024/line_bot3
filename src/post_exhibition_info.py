@@ -1,5 +1,4 @@
-import os
-import sys
+import os, sys, json
 import random
 import requests
 from datetime import datetime
@@ -10,6 +9,7 @@ LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "").strip()
 LINE_GROUP_ID = os.getenv("LINE_GROUP_ID", "").strip()
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 MESSAGE_FILE = "data/exhibition_message.txt"
+DETAIL_HISTORY_FILE = "data/detail_history.json"
 
 class GeminiLinePoster:
     def __init__(self, api_key, line_token, group_id):
@@ -116,6 +116,45 @@ class GeminiLinePoster:
 
         today = datetime.now(ZoneInfo("Asia/Tokyo")).strftime('%-m月%-d日')
         message = f"🖼️ {today}の注目展示\n\n🎨{exhibition}（{museum}）\n\n{detail_text}"
+        # --- ▼▼▼ ここから追加 (簡潔版 JSON保存) ▼▼▼ ---
+        try:
+            # 保存するデータを作成
+            entry = {
+                "timestamp": datetime.now(ZoneInfo("Asia/Tokyo")).isoformat(),
+                "exhibition": exhibition,
+                "museum": museum,
+                "detail_summary": detail_text,
+                # "line_message": message # 必要ならこれも含める
+            }
+
+            # 既存データを読み込み (なければ空リスト)
+            history = []
+            try:
+                # DETAIL_HISTORY_FILE は事前に定義しておく (例: data/detail_history.json)
+                with open(DETAIL_HISTORY_FILE, "r", encoding="utf-8") as f:
+                    history = json.load(f)
+                if not isinstance(history, list): # 簡単な型チェック
+                    history = []
+            except FileNotFoundError: # ファイルがなければ新規作成
+                pass
+            except json.JSONDecodeError: # ファイルが壊れていたら新規作成
+                 print(f"⚠️ 履歴ファイル({DETAIL_HISTORY_FILE})が壊れています。新規作成します。")
+                 history = []
+
+
+            # 新しいデータをリストに追加
+            history.append(entry)
+
+            # ファイルに書き込み (リスト全体を上書き)
+            with open(DETAIL_HISTORY_FILE, "w", encoding="utf-8") as f:
+                json.dump(history, f, ensure_ascii=False, indent=2) # indent=2 で少しコンパクトに
+            # print(f"💾 詳細履歴を保存しました: {DETAIL_HISTORY_FILE}") # ログ出力も省略
+
+        except Exception as e:
+            # 保存中の予期せぬエラーのみ警告
+            print(f"⚠️ 詳細履歴のJSON保存中にエラー: {e}")
+        # --- ▲▲▲ ここまで追加 ▲▲▲ ---
+
         self.send_to_line(message)
 
 if __name__ == "__main__":
